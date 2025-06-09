@@ -1,8 +1,8 @@
 # 🎙️ Real-Time Multilingual Speech Translator
 
-This project is an **offline**, **real-time** speech-to-speech translation system that transcribes audio from a microphone, translates it to a target language, and speaks the translation aloud — all with average latency under 1.5 seconds.
+This project was developed as part of my AI research at the University of Florida. It performs real-time speech-to-speech translation using open-source models for ASR (Whisper), machine translation (M2M100), and TTS (TTS by Coqui). The goal was to explore low-latency multilingual communication for applications in global accessibility, human-computer interaction, and real-time dialogue systems.
 
-Built with **Whisper**, **M2M100**, and **Coqui TTS**, this project showcases real-time AI integration, audio processing, and multi-threaded design.
+The final system captures live audio from a microphone, transcribes it to text, translates it into a target language, and synthesizes natural-sounding speech in under 1.5 seconds.
 
 ---
 
