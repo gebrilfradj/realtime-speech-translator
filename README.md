@@ -24,6 +24,8 @@ Built with **Whisper**, **M2M100**, and **Coqui TTS**, this project showcases re
 - **Machine Translation:** [Facebook M2M100 (418M)](https://huggingface.co/facebook/m2m100_418M)
 - **Text-to-Speech (TTS):** [Coqui TTS](https://github.com/coqui-ai/TTS)
 - **Audio Playback & Recording:** PyAudio, PyDub
+- **Hardware**: Tested on RTX 3050 Ti (laptop)  
+
 
 ---
 
@@ -63,6 +65,19 @@ Built with **Whisper**, **M2M100**, and **Coqui TTS**, this project showcases re
 
 - python benchmark.py --audio sample.wav --src en --tgt fr
 - (Optional: use make_sample.py to generate sample.wav.)
+- Example Output: Avg latency: 1.41s on NVIDIA GeForce RTX 3050 Ti Laptop GPU
+
+---
+
+### 🌍 Supported Languages
+Update LANGUAGE_TTS_MODELS in config.py to expand.
+Supported by default:
+
+- en – English
+
+- es – Spanish
+
+- fr – French
 
 ### 🎯 Use Cases
 - AI demo for real-time language translation
@@ -71,7 +86,14 @@ Built with **Whisper**, **M2M100**, and **Coqui TTS**, this project showcases re
 
 - Showcase of end-to-end speech pipeline using open-source AI models
 
+### 🧠 Citation
+Based on research by:
+Fradj et al., Real-time Multilingual Speech Translation with Open-Source Models,
+UF Journal of Undergraduate Research, Spring 2025.
+
 ### 📌 Notes
 - Performance is optimized for systems with a GPU, but CPU fallback is supported.
 
 - Language support depends on the pre-trained models used (Whisper, M2M100, Coqui TTS).
+
+
