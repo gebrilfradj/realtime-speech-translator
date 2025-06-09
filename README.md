@@ -29,16 +29,16 @@ Built with **Whisper**, **M2M100**, and **Coqui TTS**, this project showcases re
 
 ## 📂 Project Structure
 
-├── main.py # Real-time pipeline (mic → translation → speech)
-├── benchmark.py # Measures average latency for translation loop
-├── asr.py # ASR model loader and transcription
-├── translate.py # Text translation functions
-├── tts.py # Text-to-speech synthesis
-├── audio_utils.py # Audio recording & WAV file handling
-├── config.py # Global constants (chunk size, sampling rate, etc.)
-├── make_sample.py # Optional: Generate sample audio for testing
-├── requirements.txt # Dependency list
-└── .gitignore
+- ├── main.py # Real-time pipeline (mic → translation → speech)
+- ├── benchmark.py # Measures average latency for translation loop
+- ├── asr.py # ASR model loader and transcription
+- ├── translate.py # Text translation functions
+- ├── tts.py # Text-to-speech synthesis
+- ├── audio_utils.py # Audio recording & WAV file handling
+- ├── config.py # Global constants (chunk size, sampling rate, etc.)
+- ├── make_sample.py # Optional: Generate sample audio for testing
+- ├── requirements.txt # Dependency list
+- └── .gitignore
 
 ---
 
