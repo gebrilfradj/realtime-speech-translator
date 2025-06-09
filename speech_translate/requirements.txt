@@ -1,0 +1,6 @@
+pyaudio
+torch
+whisper
+transformers
+TTS
+pydub
