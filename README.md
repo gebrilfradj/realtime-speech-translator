@@ -87,6 +87,9 @@ Supported by default:
 
 - Showcase of end-to-end speech pipeline using open-source AI models
 
+### Demo (sub-2 s end-to-end)
+![Real-time translator latency benchmark 2](assets/Benchmark_ST_2.png)
+
 ### 🧠 Citation
 Based on research by:
 Fradj et al., Real-time Multilingual Speech Translation with Open-Source Models,
