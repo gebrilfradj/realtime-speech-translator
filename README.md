@@ -4,8 +4,7 @@ This project was developed as part of my AI research at the University of Florid
 
 The final system captures live audio from a microphone, transcribes it to text, translates it into a target language, and synthesizes natural-sounding speech in under 1.5 seconds.
 
-[![CI](https://github.com/gebrilfradj/real-time-speech-translator/actions/workflows/ci.yml/badge.svg)](https://github.com/gebrilfradj/real-time-speech-translator/actions/workflows/ci.yml)
-
+[![CI](https://github.com/gebrilfradj/realtime-speech-translator/actions/workflows/ci.yml/badge.svg)](https://github.com/gebrilfradj/realtime-speech-translator/actions/workflows/ci.yml) 
 ---
 
 ## 🚀 Features
