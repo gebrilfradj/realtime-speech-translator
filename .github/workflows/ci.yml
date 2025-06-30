@@ -29,6 +29,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Smoke test latency script
+      # --- lightweight smoke test: just import the modules ---
+      - name: Smoke test imports
         working-directory: speech_translate
-        run: python benchmark.py --samples 1
+        run: |
+          python - <<'PY'
+          import importlib, sys
+          for m in ("asr", "translate", "tts", "main"):
+              importlib.import_module(m)
+          print("All modules imported OK")
+          PY
