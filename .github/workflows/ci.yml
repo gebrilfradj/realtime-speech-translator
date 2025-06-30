@@ -12,12 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ---- new step: system library for PyAudio ----
+      # ---- system library for PyAudio ----
       - name: Install system libs for PyAudio
         run: |
           sudo apt-get update
           sudo apt-get install -y portaudio19-dev
-      # ----------------------------------------------
+      # ------------------------------------
 
       - uses: actions/setup-python@v5
         with:
@@ -29,13 +29,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # --- lightweight smoke test: just import the modules ---
-      - name: Smoke test imports
+      # ---- lightweight smoke test ----
+      - name: Smoke-test imports
         working-directory: speech_translate
         run: |
-          python - <<'PY'
-          import importlib, sys
-          for m in ("asr", "translate", "tts", "main"):
-              importlib.import_module(m)
-          print("All modules imported OK")
-          PY
+          python -c "import asr, translate, tts, main; print('Imports OK')"
