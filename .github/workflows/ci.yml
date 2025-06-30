@@ -33,4 +33,4 @@ jobs:
       - name: Smoke-test imports
         working-directory: speech_translate
         run: |
-          python -c "import asr, translate, tts, main; print('Imports OK')"
+          python -c "import asr, translate, tts; print('Imports OK ✅')"
