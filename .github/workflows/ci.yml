@@ -1,23 +1,22 @@
+name: CI
+
 on:
-  push: [main, master]
+  push:
+    branches: [ "main", "master" ]
   pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # one-second smoke test: import everything & ensure script runs
       - name: Smoke test latency script
-        run: |
-          python benchmark.py --samples 1
+        run: python benchmark.py --samples 1
