@@ -7,8 +7,9 @@ Speak in one language, hear it in another — locally, with no cloud API.
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **2.4 s end-to-end for 4.5 s of speech — a real-time factor of 0.54 on a CPU-only machine, with no GPU.**
-> Speech recognition 1069 ms · translation 1082 ms · synthesis 276 ms.
+> **2.7 s end-to-end for 4.5 s of speech — a real-time factor of 0.61 on a CPU-only machine, with no GPU.**
+> Speech recognition 1119 ms · translation 1365 ms · synthesis 257 ms.
+> (Median of 5 runs; the demo below shows a 2.4 s run.)
 
 ![Live demo: English speech translated to Spanish in the browser](assets/demo.gif)
 
@@ -63,7 +64,7 @@ rewrite — that is how all three were replaced without touching the pipeline lo
 ## Measured performance
 
 Same machine (CPU-only cloud VM, Intel Xeon Ice Lake, no GPU), same 4.5 s clip,
-median of 5 runs after warm-up. Reproduce with:
+median of 5 runs after warm-up. Totals are the sum of the stage medians. Reproduce with:
 
 ```bash
 python -m speech_translate.benchmark --audio sample.wav --tgt es --legacy
@@ -72,17 +73,17 @@ python -m speech_translate.benchmark --audio sample.wav --tgt es --legacy
 | Configuration | ASR | MT | TTS | Total | RTF |
 |---|---:|---:|---:|---:|---:|
 | Original stack (`openai-whisper small` + M2M100-418M) | 3438 ms | 1235 ms | — | 4673 ms | 1.04 |
-| faster-whisper `small` + NLLB-600M + Piper | 3304 ms | 1469 ms | 351 ms | 5124 ms | 1.13 |
-| **faster-whisper `base` + NLLB-600M + Piper (default)** | **1119 ms** | **1365 ms** | **257 ms** | **2712 ms** | **0.60** |
+| faster-whisper `small` + NLLB-600M + Piper | 3209 ms | 1432 ms | 253 ms | 4894 ms | 1.09 |
+| **faster-whisper `base` + NLLB-600M + Piper (default)** | **1119 ms** | **1365 ms** | **257 ms** | **2741 ms** | **0.61** |
 
 RTF (real-time factor) = processing seconds per second of audio. **Below 1.0 means
 the system keeps up with a live speaker.**
 
 **An honest note on the speed-up.** Swapping the *runtime* alone (openai-whisper →
-faster-whisper at the same model size) was worth only ~1.04× on this CPU; CTranslate2's
-large gains need a GPU or AVX-512 VNNI. The real win is that faster-whisper makes
-smaller and distilled checkpoints practical, which is what takes the system from
-"slower than real time" to comfortably ahead of it:
+faster-whisper at the same `small` model size) was worth only ~1.07× on ASR on this
+CPU; CTranslate2's large gains need a GPU or AVX-512 VNNI. The real win is that
+faster-whisper makes smaller and distilled checkpoints practical, which is what takes
+the system from "slower than real time" to comfortably ahead of it:
 
 | ASR model | Latency (4.5 s clip) | RTF | Notes |
 |---|---:|---:|---|
@@ -134,7 +135,7 @@ result = pipeline.process_file("sample.wav")
 print(result.source_language_name)   # 'English' (detected)
 print(result.transcript)             # 'Hello, how are you today? ...'
 print(result.translation)            # 'Hola, ¿cómo estás hoy? ...'
-print(result.real_time_factor)       # 0.54
+print(result.real_time_factor)       # 0.61
 result.speech.save("out.wav")
 ```
 

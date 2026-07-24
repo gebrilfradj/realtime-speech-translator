@@ -65,7 +65,7 @@ class ASRSettings:
 
     ``base`` is the default rather than ``small`` because it is the largest
     model that stays comfortably ahead of live speech on a CPU: measured
-    end-to-end RTF is 0.60 with ``base`` versus 1.13 with ``small`` on the same
+    end-to-end RTF is 0.61 with ``base`` versus 1.09 with ``small`` on the same
     machine and clip. Accuracy is one flag away (``--asr-model small``).
     """
 
