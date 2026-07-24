@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech-translate"
+version = "2.0.0"
+description = "Real-time multilingual speech-to-speech translation: faster-whisper -> NLLB-200 -> Piper"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Gebril Fradj" }]
+keywords = ["speech-translation", "asr", "whisper", "nllb", "piper", "real-time"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+dependencies = [
+    "faster-whisper>=1.1,<2",
+    "transformers>=4.44,<5",
+    "torch>=2.2",
+    "sentencepiece>=0.2,<1",
+    "numpy>=1.24,<3",
+    "soundfile>=0.12,<1",
+]
+
+[project.optional-dependencies]
+# Microphone capture and playback. Not needed to translate audio files.
+audio = ["sounddevice>=0.4,<1"]
+# Local neural speech synthesis.
+tts = ["piper-tts>=1.3,<2"]
+# OS speech synthesis: the fallback voice and the sample generator.
+system-tts = ["pyttsx3>=2.90"]
+# The browser demo.
+web = ["gradio>=4.44"]
+dev = ["pytest>=8", "ruff>=0.5"]
+all = [
+    "sounddevice>=0.4,<1",
+    "piper-tts>=1.3,<2",
+    "pyttsx3>=2.90",
+    "gradio>=4.44",
+]
+
+[project.scripts]
+speech-translate = "speech_translate.cli:main"
+speech-translate-web = "speech_translate.webui:main"
+speech-translate-bench = "speech_translate.benchmark:main"
+
+[project.urls]
+Homepage = "https://github.com/gebrilfradj/realtime-speech-translator"
+Repository = "https://github.com/gebrilfradj/realtime-speech-translator"
+
+[tool.setuptools.packages.find]
+include = ["speech_translate*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "slow: needs real model weights and network access (deselect with '-m \"not slow\"')",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

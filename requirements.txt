@@ -1,0 +1,31 @@
+# Pinned runtime dependencies for the full application.
+# Library-level (unpinned) ranges live in pyproject.toml; this file is what CI,
+# Docker and the documented quickstart install, so it is pinned for
+# reproducibility.
+#
+#   pip install -r requirements.txt
+#
+# NOTE: the ASR dependency is `faster-whisper`. The PyPI package named
+# `whisper` is an unrelated time-series database from the Graphite project --
+# installing it gives you a module that imports cleanly and then has no
+# `load_model`, which is exactly the bug this file used to ship.
+
+# --- speech recognition (CTranslate2 runtime) ---
+faster-whisper==1.2.0
+
+# --- machine translation ---
+transformers==4.57.1
+torch==2.13.0
+sentencepiece==0.2.1
+
+# --- speech synthesis ---
+piper-tts==1.6.0
+pyttsx3==2.99          # fallback voice + make_sample.py
+
+# --- audio I/O ---
+sounddevice==0.5.2     # capture and playback (bundles PortAudio on win/macOS)
+soundfile==0.13.1      # WAV read/write, replaces the ffmpeg-dependent pydub
+numpy==2.2.6
+
+# --- web demo ---
+gradio==5.49.1
