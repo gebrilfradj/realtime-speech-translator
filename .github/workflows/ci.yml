@@ -2,35 +2,106 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep CI on CPU and off the model hubs; the unit tests use fakes.
+  SPEECH_TRANSLATE_FORCE_CPU: "1"
 
 jobs:
-  test:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff==0.14.0
+      - run: ruff check speech_translate tests
 
-      # ---- system library for PyAudio ----
-      - name: Install system libs for PyAudio
+  test:
+    name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # sounddevice needs PortAudio at runtime on Linux. The package is
+      # designed to import without it -- one of the tests proves that -- but
+      # the device-listing paths need it present.
+      - name: Install PortAudio (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+
+      - name: Install the package
         run: |
-          sudo apt-get update
-          sudo apt-get install -y portaudio19-dev
-      # ------------------------------------
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,audio,tts]"
 
+      - name: Run the test suite
+        run: pytest tests -v -m "not slow"
+
+      - name: Verify the CLI runs
+        run: |
+          python -m speech_translate --version
+          python -m speech_translate --list-languages
+          python -m speech_translate --help
+
+  dependency-audit:
+    name: Dependency sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install deps
-        working-directory: speech_translate
+      # This repository previously depended on the PyPI package `whisper`,
+      # which is a Graphite time-series database, not OpenAI's Whisper. It
+      # imported cleanly, so the old import-only smoke test passed while the
+      # application was fundamentally broken. Never again.
+      - name: Reject the wrong whisper package
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if grep -Eq '^[[:space:]]*whisper[[:space:]]*([=<>!~].*)?$' requirements.txt; then
+            echo "::error file=requirements.txt::'whisper' on PyPI is a time-series database. Use 'faster-whisper'."
+            exit 1
+          fi
+          grep -q 'faster-whisper' requirements.txt || {
+            echo "::error file=requirements.txt::faster-whisper is missing."; exit 1; }
+          echo "Dependency names look correct."
 
-      # ---- lightweight smoke test ----
-      - name: Smoke-test imports
-        working-directory: speech_translate
-        run: |
-          python -c "import asr, translate, tts; print('Imports OK')"
+      - name: Every third-party import must be a declared dependency
+        run: python scripts/check_dependencies.py
+
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
