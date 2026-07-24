@@ -183,17 +183,23 @@ everywhere else. The rebuild fixed the following — each one is now covered by 
 - **UTF-8 output is forced.** A translator that prints `c?mo` instead of `cómo`
   on a Windows console is not much of a translator.
 
-### Two bugs the test-suite caught during the rewrite
+### Three bugs the test-suite caught during the rewrite
 
-1. The energy VAD seeded its noise floor from the **first frame**. If you were
+1. **Every punctuated utterance was silently dropped in the live path.** The
+   real-time handler kept only the sentence buffer's leftover text and discarded
+   the completed sentences it returned. Since Whisper punctuates nearly everything
+   it transcribes, live microphone translation produced almost no output — while
+   the file path, which does not use the buffer, worked fine. Found by the first
+   test ever written against `RealtimeSession`.
+2. The energy VAD seeded its noise floor from the **first frame**. If you were
    already speaking when capture started, the floor initialised to speech level
    and the gate never opened — the first utterance was silently lost.
-2. The obvious fix (adapt only on silence) deadlocks the other way: in a
-   continuously noisy room every frame looks like speech, so the floor never
+3. The obvious fix for (2) — adapt only on silence — deadlocks the other way: in
+   a continuously noisy room every frame looks like speech, so the floor never
    updates and the gate jams open.
 
-Both are avoided by estimating the noise floor as a low percentile of recent frame
-energies (minimum statistics), with a short static-threshold warm-up.
+(2) and (3) are avoided by estimating the noise floor as a low percentile of
+recent frame energies (minimum statistics), with a short static-threshold warm-up.
 
 ---
 
@@ -213,7 +219,7 @@ speech_translate/
 ├── mt.py              # NLLB-200
 ├── audio/             # devices, capture, VAD, playback, WAV I/O
 └── tts/               # TTSBackend interface: piper, system, none
-tests/                 # 155 tests, all models mocked — no downloads
+tests/                 # 188 tests, all models mocked — no downloads
 scripts/               # dependency audit, demo recorder
 ```
 
@@ -226,7 +232,7 @@ adding one line to `create_tts_backend`. Nothing else changes.
 
 ```bash
 pip install -e ".[dev,audio,tts,web]"
-pytest tests -q                       # 155 tests, no network, no model downloads
+pytest tests -q                       # 188 tests, no network, no model downloads
 ruff check speech_translate tests
 python scripts/check_dependencies.py  # imports vs declared dependencies
 ```

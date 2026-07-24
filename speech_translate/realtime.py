@@ -193,12 +193,14 @@ class RealtimeSession:
 
         # A truncated utterance means the speaker was cut off mid-sentence by
         # the length cap, so hold the fragment and wait for the rest. A natural
-        # pause is already a good boundary, so flush immediately.
-        if utterance.truncated:
-            ready = self._buffer.add(transcript.text)
-        else:
-            self._buffer.add(transcript.text)
-            ready = self._buffer.flush()
+        # pause is already a good boundary, so also release whatever is left.
+        #
+        # Both branches must keep what add() returns: it extracts *completed*
+        # sentences, and Whisper punctuates nearly everything it transcribes.
+        # Taking only flush() here silently dropped almost every utterance.
+        ready = self._buffer.add(transcript.text)
+        if not utterance.truncated:
+            ready = ready + self._buffer.flush()
 
         for index, sentence in enumerate(ready):
             # ASR cost is charged once, to the first sentence it produced.
