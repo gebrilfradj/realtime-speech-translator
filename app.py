@@ -4,15 +4,16 @@ Spaces runs ``app.py`` at the repository root, so this file exists purely to
 launch the same demo the CLI does. All the logic lives in
 ``speech_translate/webui.py``; there is no duplicated UI code.
 
-To deploy:
+A Space also needs a ``README.md`` with YAML front matter declaring
+``sdk: gradio``, and its dependencies in ``requirements.txt`` **at the Space
+root** -- any other filename is ignored. Those live in ``spaces/`` and are put
+in the right places by::
 
-1. Create a Space (SDK: Gradio, hardware: CPU basic is enough).
-2. Push this repository to it, or add the Space as a git remote:
+    python scripts/deploy_space.py --push https://huggingface.co/spaces/<user>/<name>
 
-       git remote add space https://huggingface.co/spaces/<user>/<space>
-       git push space main
-
-3. The Space installs ``requirements-spaces.txt`` and runs this file.
+Do not simply push this repository to a Space: the root ``requirements.txt``
+pins torch without the CPU wheel index and would pull the multi-gigabyte CUDA
+build onto free CPU hardware.
 """
 
 from __future__ import annotations

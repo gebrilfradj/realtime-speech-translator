@@ -220,7 +220,8 @@ speech_translate/
 ├── audio/             # devices, capture, VAD, playback, WAV I/O
 └── tts/               # TTSBackend interface: piper, system, none
 tests/                 # 188 tests, all models mocked — no downloads
-scripts/               # dependency audit, demo recorder
+scripts/               # dependency audit, demo recorder, Space deployment
+spaces/                # Hugging Face Space card + CPU-pinned requirements
 ```
 
 Add a TTS engine (XTTS v2 voice cloning, say) by subclassing `TTSBackend` and
@@ -244,14 +245,21 @@ dependency audit, and a distribution build.
 
 ## Deploying the hosted demo
 
-[`app.py`](app.py) and [`requirements-spaces.txt`](requirements-spaces.txt) are ready
-for Hugging Face Spaces (SDK: Gradio, CPU basic is enough):
+A Hugging Face Space needs two things a normal GitHub repo does not have: a
+`README.md` opening with YAML front matter (`sdk: gradio`, `app_file`), and its
+dependencies in `requirements.txt` **at the Space root** — any other filename is
+ignored. Pushing this repo to a Space directly would therefore fail to build,
+and would pull the multi-gigabyte CUDA torch build onto free CPU hardware.
+
+So the Space's own README and requirements live in [`spaces/`](spaces/), and one
+command puts everything in the right place:
 
 ```bash
-git remote add space https://huggingface.co/spaces/<user>/<space>
-git push space main
+python scripts/deploy_space.py                       # assemble into build/space and verify
+python scripts/deploy_space.py --push https://huggingface.co/spaces/<user>/<name>
 ```
 
+The script refuses to deploy a Space whose front matter or torch pin is wrong.
 Microphone capture happens in the browser, so the server needs no audio hardware.
 
 ---
