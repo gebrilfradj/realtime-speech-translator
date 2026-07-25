@@ -117,7 +117,7 @@ The original version had a few problems worth naming, since they shaped the desi
 - Playback blocked the processing thread, so the translator stopped translating while it
   was speaking.
 
-Full detail is in [PR #1](https://github.com/gebrilfradj/realtime-speech-translator/pull/1).
+Full detail is in the commit history.
 
 ## Development
 
