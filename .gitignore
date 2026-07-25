@@ -1,0 +1,31 @@
+.venv/
+venv/
+env/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Local audio artefacts
+*.wav
+!tests/data/*.wav
+temp_in.wav
+temp_out.wav
+translated.wav
+bench_out.wav
+
+# Model and voice caches
+.cache/
+voices/
+*.onnx
+*.onnx.json
+
+# Benchmark output
+benchmark*.json
+
+.DS_Store
+.env
+.pytest_cache/
+.ruff_cache/

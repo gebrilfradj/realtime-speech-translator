@@ -1,0 +1,12 @@
+# Dependencies for the Hugging Face Space (app.py).
+# CPU-only torch keeps the image small enough for free-tier hardware.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+faster-whisper==1.2.0
+transformers==4.57.1
+torch==2.13.0
+sentencepiece==0.2.1
+piper-tts==1.6.0
+soundfile==0.13.1
+numpy==2.2.6
+gradio==5.49.1
