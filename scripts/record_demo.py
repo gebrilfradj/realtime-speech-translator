@@ -81,7 +81,9 @@ def record(url: str, audio: str, out: str, target_label: str, hold: float) -> in
             text = page.inner_text("body")
             if "RTF" in text and "ms" in text:
                 break
-        page.wait_for_timeout(1_500)
+        # The audio players redraw their waveforms after the response lands;
+        # screenshotting too early catches them blank.
+        page.wait_for_timeout(4_000)
         shoot(page, "result")
         page.wait_for_timeout(int(hold * 1000))
         shoot(page, "result_hold")

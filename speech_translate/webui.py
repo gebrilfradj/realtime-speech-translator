@@ -39,12 +39,33 @@ SAMPLE_RATE = 16_000
 _DESCRIPTION = """
 # Real-Time Speech Translator
 
-Speak in one language, hear it in another. A fully open-source, local cascade:
+Speak into the mic in one language and get it back in another. Everything runs
+locally, nothing is sent to an external API.
 
-**faster-whisper** (speech recognition) -> **NLLB-200** (translation, 200 languages) -> **Piper** (speech synthesis)
-
-Nothing is sent to a third-party API.
+`faster-whisper` (speech recognition) -> `NLLB-200` (translation, 200 languages) -> `Piper` (speech)
 """
+
+
+def _theme():
+    """Slate/neutral theme.
+
+    Gradio's default palettes lean heavily on violet, which reads as generic
+    AI-demo. Slate with system fonts looks closer to a normal developer tool.
+    """
+    import gradio as gr
+
+    return gr.themes.Base(
+        primary_hue=gr.themes.colors.slate,
+        secondary_hue=gr.themes.colors.slate,
+        neutral_hue=gr.themes.colors.gray,
+        font=["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        font_mono=["ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
+    ).set(
+        button_primary_background_fill="*neutral_800",
+        button_primary_background_fill_hover="*neutral_900",
+        button_primary_text_color="white",
+        block_title_text_weight="600",
+    )
 
 
 @dataclass
@@ -110,12 +131,12 @@ def _format_stats(result) -> str:  # noqa: ANN001
     rtf = result.real_time_factor
     verdict = "faster than real time" if 0 < rtf < 1 else "slower than real time"
     return (
-        f"**{result.source_language_name} → {result.target_language_name}**  \n"
+        f"**{result.source_language_name} -> {result.target_language_name}**  \n"
         f"ASR `{result.timings.asr * 1000:.0f} ms` · "
         f"MT `{result.timings.mt * 1000:.0f} ms` · "
         f"TTS `{result.timings.tts * 1000:.0f} ms` · "
         f"**total `{result.timings.total * 1000:.0f} ms`**  \n"
-        f"{result.audio_duration:.1f} s of audio → RTF `{rtf:.2f}` ({verdict})"
+        f"{result.audio_duration:.1f} s of audio -> RTF `{rtf:.2f}` ({verdict})"
     )
 
 
@@ -270,7 +291,7 @@ def build_demo(settings: Settings | None = None, preload: bool = False):
         return _render_history([], subtitles_only), [], None
 
     # -- layout ----------------------------------------------------------
-    with gr.Blocks(title="Real-Time Speech Translator", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="Real-Time Speech Translator", theme=_theme()) as demo:
         gr.Markdown(_DESCRIPTION)
 
         with gr.Row():

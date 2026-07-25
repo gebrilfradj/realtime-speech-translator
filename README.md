@@ -1,24 +1,21 @@
-# Real-Time Multilingual Speech Translator
+# Real-Time Speech Translator
 
-Speak in one language, hear it in another — locally, with no cloud API.
-**97 source languages, 200 translation targets, 48 spoken output voices.**
+Speech-to-speech translation that runs on your own machine. You talk, it transcribes,
+translates, and speaks the result back in another language. No cloud APIs.
+
+I built this for an undergraduate research project at the University of Florida, then
+rewrote it to be faster and to actually install correctly.
 
 [![CI](https://github.com/gebrilfradj/realtime-speech-translator/actions/workflows/ci.yml/badge.svg)](https://github.com/gebrilfradj/realtime-speech-translator/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **2.7 s end-to-end for 4.5 s of speech — a real-time factor of 0.61 on a CPU-only machine, with no GPU.**
-> Speech recognition 1119 ms · translation 1365 ms · synthesis 257 ms.
-> (Median of 5 runs; the demo below shows a 2.4 s run.)
+**2.7 s to process 4.5 s of speech on a CPU with no GPU, speech synthesis included.
+That is a real-time factor of 0.61, so it keeps up with a live speaker.**
 
-![Live demo: English speech translated to Spanish in the browser](assets/demo.gif)
+![Translating English speech into Spanish in the browser](assets/demo.gif)
 
-*Recorded from the actual web UI by [`scripts/record_demo.py`](scripts/record_demo.py) — it drives a real
-browser against a running server, so the GIF cannot drift from what the code does.*
-
----
-
-## Try it
+## Quickstart
 
 ```bash
 git clone https://github.com/gebrilfradj/realtime-speech-translator.git
@@ -28,103 +25,46 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python -m speech_translate.webui    # browser demo at http://127.0.0.1:7860
+python -m speech_translate.webui    # browser demo on http://127.0.0.1:7860
 ```
 
-Or with Docker, no Python setup at all:
+Models download on first run (about 1.5 GB) and are cached after that.
+
+Docker works too:
 
 ```bash
 docker build -t speech-translate .
 docker run --rm -p 7860:7860 -v st-cache:/home/app/.cache speech-translate
 ```
 
-Models download on first run (~1.5 GB) and are cached afterwards.
+## What it uses
 
----
-
-## The pipeline
-
-```
-microphone ─► VAD ─► faster-whisper ─► NLLB-200 ─► Piper ─► speakers
-              │        (ASR)            (MT)       (TTS)
-              └── utterance segmentation, not fixed chunks
-```
-
-| Stage | Model | Why this one |
+| Stage | Model | Why |
 |---|---|---|
-| **ASR** | [`faster-whisper`](https://github.com/SYSTRAN/faster-whisper) (CTranslate2) | Whisper accuracy with int8 quantisation, and it can run distilled checkpoints that `openai-whisper` cannot load at all |
-| **MT** | [`facebook/nllb-200-distilled-600M`](https://huggingface.co/facebook/nllb-200-distilled-600M) | 200 languages, actively maintained, stronger than M2M100-418M |
-| **TTS** | [Piper](https://github.com/OHF-Voice/piper1-gpl) (ONNX VITS) | Synthesises far faster than real time on a CPU; 170 voices across 49 languages |
+| Speech recognition | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | Whisper accuracy, int8 on CPU, and it can load distilled checkpoints that `openai-whisper` can't |
+| Translation | [nllb-200-distilled-600M](https://huggingface.co/facebook/nllb-200-distilled-600M) | 200 languages, still maintained, better than M2M100-418M |
+| Speech synthesis | [Piper](https://github.com/OHF-Voice/piper1-gpl) | Faster than real time on CPU, 170 voices across 49 languages |
 
-Every stage sits behind a small interface, so swapping a model is a class, not a
-rewrite — that is how all three were replaced without touching the pipeline logic.
-
----
-
-## Measured performance
-
-Same machine (CPU-only cloud VM, Intel Xeon Ice Lake, no GPU), same 4.5 s clip,
-median of 5 runs after warm-up. Totals are the sum of the stage medians. Reproduce with:
-
-```bash
-python -m speech_translate.benchmark --audio sample.wav --tgt es --legacy
-```
-
-| Configuration | ASR | MT | TTS | Total | RTF |
-|---|---:|---:|---:|---:|---:|
-| Original stack (`openai-whisper small` + M2M100-418M) | 3438 ms | 1235 ms | — | 4673 ms | 1.04 |
-| faster-whisper `small` + NLLB-600M + Piper | 3209 ms | 1432 ms | 253 ms | 4894 ms | 1.09 |
-| **faster-whisper `base` + NLLB-600M + Piper (default)** | **1119 ms** | **1365 ms** | **257 ms** | **2741 ms** | **0.61** |
-
-RTF (real-time factor) = processing seconds per second of audio. **Below 1.0 means
-the system keeps up with a live speaker.**
-
-**An honest note on the speed-up.** Swapping the *runtime* alone (openai-whisper →
-faster-whisper at the same `small` model size) was worth only ~1.07× on ASR on this
-CPU; CTranslate2's large gains need a GPU or AVX-512 VNNI. The real win is that
-faster-whisper makes smaller and distilled checkpoints practical, which is what takes
-the system from "slower than real time" to comfortably ahead of it:
-
-| ASR model | Latency (4.5 s clip) | RTF | Notes |
-|---|---:|---:|---|
-| `tiny` | 600 ms | 0.13 | Lowest accuracy |
-| **`base` (default)** | **1097 ms** | **0.24** | Best speed/accuracy balance |
-| `distil-small.en` | 1529 ms | 0.34 | English only; cannot run on `openai-whisper` |
-| `small` | 3270 ms | 0.73 | Most accurate; use `--asr-model small` |
-
-NLLB-600M costs ~18% more than M2M100-418M per translation. That is a deliberate
-trade: 200 languages and better quality for a fraction of the budget that dropping
-one ASR model size gives back.
-
----
+97 source languages, 200 translation targets, 48 of those with a voice. Each stage sits
+behind a small interface, so swapping a model is one class rather than a rewrite.
 
 ## Usage
 
 ```bash
-# Live microphone translation
-python -m speech_translate --tgt es                 # auto-detect source → Spanish
-python -m speech_translate --src en --tgt ja        # pin the source (slightly faster)
-python -m speech_translate --tgt fr --no-speak      # subtitles only, no audio out
-python -m speech_translate --tgt de --asr-model small   # trade latency for accuracy
+python -m speech_translate --tgt es               # auto-detect what you speak, reply in Spanish
+python -m speech_translate --src en --tgt ja      # pin the source language, slightly faster
+python -m speech_translate --tgt fr --no-speak    # subtitles only
+python -m speech_translate --tgt de --asr-model small   # more accuracy, more latency
 
-# Translate a recording
-python -m speech_translate --file talk.wav --tgt de --save-transcript out.txt
-
-# Discovery
-python -m speech_translate --list-devices           # microphones
-python -m speech_translate --list-languages         # 98 language codes
-
-# Browser demo, benchmark, sample audio
-python -m speech_translate.webui --share
-python -m speech_translate.benchmark --audio sample.wav --tgt es
-python -m speech_translate.make_sample --lang en --out sample.wav
+python -m speech_translate --file talk.wav --tgt de     # translate a recording
+python -m speech_translate --list-devices               # pick a microphone
+python -m speech_translate --list-languages             # language codes
 ```
 
-Language codes are flexible: `es`, `spa_Latn`, `es-ES` and `Spanish` all work.
-Unknown codes fail immediately with a suggestion rather than silently
-mistranslating.
+Language codes are flexible. `es`, `spa_Latn`, `es-ES` and `Spanish` all work, and an
+unknown code fails immediately with a suggestion instead of quietly mistranslating.
 
-### As a library
+As a library:
 
 ```python
 from speech_translate import Pipeline, Settings
@@ -132,153 +72,93 @@ from speech_translate import Pipeline, Settings
 pipeline = Pipeline(Settings(src="auto", tgt="spa_Latn")).warmup()
 result = pipeline.process_file("sample.wav")
 
-print(result.source_language_name)   # 'English' (detected)
-print(result.transcript)             # 'Hello, how are you today? ...'
-print(result.translation)            # 'Hola, ¿cómo estás hoy? ...'
-print(result.real_time_factor)       # 0.61
+print(result.source_language_name)   # English, detected
+print(result.translation)            # Hola, ¿cómo estás hoy? ...
 result.speech.save("out.wav")
 ```
 
-Importing the package loads no models and opens no audio devices.
+Importing the package doesn't load models or open audio devices.
 
----
+## Performance
 
-## What was wrong, and what changed
+CPU-only machine, no GPU. Same 4.5 s clip, median of 5 runs after warm-up. Reproduce with
+`python -m speech_translate.benchmark --audio sample.wav --tgt es --legacy`.
 
-This started as an undergraduate research project. It worked in a demo and broke
-everywhere else. The rebuild fixed the following — each one is now covered by a test.
+| Setup | ASR | MT | TTS | Total | RTF |
+|---|---:|---:|---:|---:|---:|
+| Original (`openai-whisper small` + M2M100-418M) | 3438 ms | 1235 ms | n/a | 4673 ms | 1.04 |
+| faster-whisper `small` + NLLB + Piper | 3209 ms | 1432 ms | 253 ms | 4894 ms | 1.09 |
+| **faster-whisper `base` + NLLB + Piper (default)** | **1119 ms** | **1365 ms** | **257 ms** | **2741 ms** | **0.61** |
 
-### Correctness
+Worth being clear about where the speedup came from. Swapping the ASR runtime by itself
+only bought about 1.07x on this CPU, since CTranslate2's bigger wins need a GPU or
+AVX-512 VNNI, and NLLB-600M is roughly 18% slower than M2M100 (a deliberate trade for
+quality and language coverage). The real gain is that faster-whisper makes the smaller
+checkpoints practical, so the default drops to `base`:
 
-| Problem | Fix |
-|---|---|
-| `requirements.txt` listed **`whisper`**, which on PyPI is [Graphite's time-series database](https://pypi.org/project/whisper/), not OpenAI's. It imports fine and then has no `load_model`, so **CI passed while the app was fundamentally broken**. | Depend on `faster-whisper`. A [CI job](.github/workflows/ci.yml) now fails the build if `whisper` ever reappears. |
-| `--src auto` discarded Whisper's detected language and passed the literal string `"auto"` to the translator as a language code. | The recogniser returns the detected language; it is mapped ISO 639-1 → FLORES-200 and forwarded. Regression-tested. |
-| `make_sample.py` imported `pyttsx3`, which was not a declared dependency. | Declared, plus a [CI check](scripts/check_dependencies.py) that every third-party import appears in `pyproject.toml`. |
-| `MIC_INDEX = 1` was hardcoded to one laptop's Realtek mic. | System default by default, with `--list-devices` and `--input-device <index\|name>`. |
-| `CHUNK_DURATION` was defined twice with different values (2 s and 3 s); `FORMAT = None` was dead. | One typed `Settings` tree, no duplication. |
-| `argparse` ran at **import time** in `main.py`, so importing the module parsed `sys.argv`. | Parsing happens inside `main()`; a test asserts importing has no side effects. |
-| README documented files at the repo root and a `git clone` with no URL. | Rewritten; the quickstart above is copy-pasteable. |
+| ASR model | Latency | RTF |
+|---|---:|---:|
+| `tiny` | 600 ms | 0.13 |
+| **`base` (default)** | **1097 ms** | **0.24** |
+| `distil-small.en` | 1529 ms | 0.34 |
+| `small` | 3270 ms | 0.73 |
 
-### Real-time quality
+## Notes from the rewrite
 
-- **Fixed 3-second chunks → voice-activity segmentation.** The old loop sliced
-  words in half, transcribed silence at full cost, and added up to 3 s of latency
-  even when the speaker had stopped. Utterances now end when the speaker pauses.
-  Measured: 5 s of silence produces **0** ASR calls instead of 2.
-- **Hallucination gating.** Whisper emits confident boilerplate ("Thank you.",
-  "Thanks for watching!") over silence. Segments are now filtered on
-  `no_speech_prob`, average log-probability, and a repeated-phrase check.
-  `condition_on_previous_text` is off, which is the main driver of repetition loops.
-- **Playback no longer blocks translation.** `pydub.playback.play()` ran on the
-  processing thread, so the translator stopped translating while it spoke — every
-  sentence added its own length to the backlog. Playback is now its own thread.
-- **Bounded queues.** The old unbounded queue meant a slow machine drifted further
-  behind for as long as it ran. Queues are now bounded and drop the *oldest*
-  utterance, keeping output near the live edge, and report what they dropped.
-- **Sentence buffering.** Fragments are held until a sentence boundary (with a
-  timeout and length cap) so synthesis gets a whole clause instead of "I went to the".
-- **Warm-up covers all three stages.** TTS was omitted, so the first utterance paid
-  Piper's one-off ONNX graph build: **3347 ms → 276 ms** once warmed.
-- **UTF-8 output is forced.** A translator that prints `c?mo` instead of `cómo`
-  on a Windows console is not much of a translator.
+The original version had a few problems worth naming, since they shaped the design:
 
-### Three bugs the test-suite caught during the rewrite
+- `requirements.txt` listed `whisper`, which on PyPI is [Graphite's time-series
+  database](https://pypi.org/project/whisper/), not OpenAI's. It imports fine and then has
+  no `load_model()`, so CI passed while nothing worked. CI now fails if it reappears.
+- `--src auto` threw away the detected language and passed the string `"auto"` to the
+  translator as a language code.
+- Audio was cut into fixed 3-second chunks, which split words and ran the recognizer on
+  silence. Voice activity detection replaced it, so 5 s of silence now costs nothing.
+- Playback blocked the processing thread, so the translator stopped translating while it
+  was speaking.
 
-1. **Every punctuated utterance was silently dropped in the live path.** The
-   real-time handler kept only the sentence buffer's leftover text and discarded
-   the completed sentences it returned. Since Whisper punctuates nearly everything
-   it transcribes, live microphone translation produced almost no output — while
-   the file path, which does not use the buffer, worked fine. Found by the first
-   test ever written against `RealtimeSession`.
-2. The energy VAD seeded its noise floor from the **first frame**. If you were
-   already speaking when capture started, the floor initialised to speech level
-   and the gate never opened — the first utterance was silently lost.
-3. The obvious fix for (2) — adapt only on silence — deadlocks the other way: in
-   a continuously noisy room every frame looks like speech, so the floor never
-   updates and the gate jams open.
-
-(2) and (3) are avoided by estimating the noise floor as a low percentile of
-recent frame energies (minimum statistics), with a short static-threshold warm-up.
-
----
-
-## Project layout
-
-```
-speech_translate/
-├── pipeline.py        # Pipeline: ASR → MT → TTS, with injectable components
-├── realtime.py        # RealtimeSession: capture / worker / playback threads
-├── cli.py             # argparse, inside main()
-├── webui.py           # Gradio demo
-├── benchmark.py       # per-stage latency, RTF, --legacy comparison
-├── config.py          # typed Settings tree, no import-time side effects
-├── languages.py       # ISO 639-1 ↔ FLORES-200 ↔ Piper voice mapping
-├── segmentation.py    # sentence buffering
-├── asr.py             # faster-whisper + silence/hallucination gating
-├── mt.py              # NLLB-200
-├── audio/             # devices, capture, VAD, playback, WAV I/O
-└── tts/               # TTSBackend interface: piper, system, none
-tests/                 # 188 tests, all models mocked — no downloads
-scripts/               # dependency audit, demo recorder, Space deployment
-spaces/                # Hugging Face Space card + CPU-pinned requirements
-```
-
-Add a TTS engine (XTTS v2 voice cloning, say) by subclassing `TTSBackend` and
-adding one line to `create_tts_backend`. Nothing else changes.
-
----
+Full detail is in [PR #1](https://github.com/gebrilfradj/realtime-speech-translator/pull/1).
 
 ## Development
 
 ```bash
 pip install -e ".[dev,audio,tts,web]"
-pytest tests -q                       # 188 tests, no network, no model downloads
+pytest tests -q                       # 188 tests, models mocked, no downloads
 ruff check speech_translate tests
-python scripts/check_dependencies.py  # imports vs declared dependencies
+python scripts/check_dependencies.py  # imports must match declared dependencies
 ```
 
-CI runs lint, the full suite on Linux and Windows across Python 3.10–3.12, the
-dependency audit, and a distribution build.
+CI runs lint, the test suite on Linux and Windows across Python 3.10 to 3.12, a dependency
+audit, and a build.
 
----
+`assets/demo.gif` is generated by `scripts/record_demo.py`, which drives a real browser
+against a running server, so it stays in sync with the actual UI.
 
-## Deploying the hosted demo
+## Hosted demo
 
-A Hugging Face Space needs two things a normal GitHub repo does not have: a
-`README.md` opening with YAML front matter (`sdk: gradio`, `app_file`), and its
-dependencies in `requirements.txt` **at the Space root** — any other filename is
-ignored. Pushing this repo to a Space directly would therefore fail to build,
-and would pull the multi-gigabyte CUDA torch build onto free CPU hardware.
-
-So the Space's own README and requirements live in [`spaces/`](spaces/), and one
-command puts everything in the right place:
+Hugging Face Spaces needs a README with `sdk: gradio` front matter and its dependencies in
+`requirements.txt` at the Space root, neither of which matches this repo's layout. Those
+live in [`spaces/`](spaces/) and get put in place by:
 
 ```bash
-python scripts/deploy_space.py                       # assemble into build/space and verify
 python scripts/deploy_space.py --push https://huggingface.co/spaces/<user>/<name>
 ```
 
-The script refuses to deploy a Space whose front matter or torch pin is wrong.
-Microphone capture happens in the browser, so the server needs no audio hardware.
+## Limitations
 
----
-
-## Notes and limitations
-
-- CPU-only works and is what every number above was measured on. A GPU
-  (`--device cuda`) helps ASR and MT considerably.
-- Translation quality inherits NLLB-200's; low-resource languages are weaker.
-- 48 of the 200 target languages have a Piper voice. The rest fall back to the OS
-  voice, then to subtitles-only — a missing voice never crashes the pipeline.
-- The `--legacy` benchmark excludes TTS from both sides, because Coqui TTS is
+- Runs fine on CPU, which is what all the numbers above were measured on. A GPU
+  (`--device cuda`) helps recognition and translation a lot.
+- Translation quality is NLLB's, so low-resource languages are weaker.
+- 48 of the 200 target languages have a Piper voice. The rest fall back to the system voice
+  and then to subtitles, so a missing voice never crashes anything.
+- The `--legacy` benchmark leaves synthesis out of both sides, because Coqui TTS is
   unmaintained and no longer installs on current Python. That is why it was replaced.
 
 ## Citation
 
-Based on research by Fradj et al., *Real-time Multilingual Speech Translation with
-Open-Source Models*, UF Journal of Undergraduate Research, Spring 2025.
+Fradj et al., *Real-time Multilingual Speech Translation with Open-Source Models*,
+UF Journal of Undergraduate Research, Spring 2025.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
